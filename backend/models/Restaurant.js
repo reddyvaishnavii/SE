@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs'); // ← MISSING IMPORT - THIS WAS THE ISSUE!
 
 const menuItemSchema = new mongoose.Schema({
   name: {
@@ -30,7 +31,8 @@ const restaurantSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    select: false // Don't return password by default
   },
   cuisine: [String],
   address: {
@@ -40,26 +42,38 @@ const restaurantSchema = new mongoose.Schema({
     zipCode: String
   },
   phone: String,
+  image: String, // Restaurant logo/image
   menu: [menuItemSchema],
-  deliveryTime: String,
-  minOrder: Number,
-  rating: {
+  deliveryTime: {
+    type: String,
+    default: '30-45 min'
+  },
+  minOrder: {
     type: Number,
     default: 0
+  },
+  rating: {
+    type: Number,
+    default: 4.0
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
 });
 
-// Hash password before saving (same as user)
+// Hash password before saving
 restaurantSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-restaurantSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
-  return await bcrypt.compare(candidatePassword, userPassword);
+// Compare password method
+restaurantSchema.methods.correctPassword = async function(candidatePassword, restaurantPassword) {
+  return await bcrypt.compare(candidatePassword, restaurantPassword);
 };
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);

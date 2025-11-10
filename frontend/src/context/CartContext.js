@@ -1,113 +1,6 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const CartContext = createContext();
-
-const cartReducer = (state, action) => {
-  switch (action.type) {
-    case 'ADD_ITEM':
-      const existingItem = state.items.find(
-        item => item.menuItem === action.payload.menuItem
-      );
-      
-      if (existingItem) {
-        return {
-          ...state,
-          items: state.items.map(item =>
-            item.menuItem === action.payload.menuItem
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
-        };
-      }
-      
-      return {
-        ...state,
-        items: [...state.items, { ...action.payload, quantity: 1 }]
-      };
-    
-    case 'REMOVE_ITEM':
-      return {
-        ...state,
-        items: state.items.filter(item => item.menuItem !== action.payload)
-      };
-    
-    case 'UPDATE_QUANTITY':
-      return {
-        ...state,
-        items: state.items.map(item =>
-          item.menuItem === action.payload.id
-            ? { ...item, quantity: action.payload.quantity }
-            : item
-        )
-      };
-    
-    case 'CLEAR_CART':
-      return {
-        ...state,
-        items: []
-      };
-    
-    default:
-      return state;
-  }
-};
-
-const initialState = {
-  items: [],
-  restaurant: null
-};
-
-export const CartProvider = ({ children }) => {
-  const [cart, dispatch] = useReducer(cartReducer, initialState);
-
-  const addItem = (item, restaurant) => {
-    if (cart.restaurant && cart.restaurant._id !== restaurant._id) {
-      if (window.confirm('Your cart contains items from another restaurant. Would you like to clear the cart and add items from this restaurant?')) {
-        clearCart();
-      } else {
-        return;
-      }
-    }
-    
-    dispatch({ type: 'ADD_ITEM', payload: item });
-    if (!cart.restaurant) {
-      dispatch({ type: 'SET_RESTAURANT', payload: restaurant });
-    }
-  };
-
-  const removeItem = (itemId) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: itemId });
-  };
-
-  const updateQuantity = (itemId, quantity) => {
-    if (quantity <= 0) {
-      removeItem(itemId);
-    } else {
-      dispatch({ type: 'UPDATE_QUANTITY', payload: { id: itemId, quantity } });
-    }
-  };
-
-  const clearCart = () => {
-    dispatch({ type: 'CLEAR_CART' });
-  };
-
-  const getTotalPrice = () => {
-    return cart.items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  return (
-    <CartContext.Provider value={{
-      cart,
-      addItem,
-      removeItem,
-      updateQuantity,
-      clearCart,
-      getTotalPrice
-    }}>
-      {children}
-    </CartContext.Provider>
-  );
-};
 
 export const useCart = () => {
   const context = useContext(CartContext);
@@ -116,3 +9,136 @@ export const useCart = () => {
   }
   return context;
 };
+
+export const CartProvider = ({ children }) => {
+  const [cartItems, setCartItems] = useState([]);
+  const [restaurant, setRestaurant] = useState(null);
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    const savedRestaurant = localStorage.getItem('cartRestaurant');
+    
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
+    if (savedRestaurant) {
+      setRestaurant(JSON.parse(savedRestaurant));
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+    if (restaurant) {
+      localStorage.setItem('cartRestaurant', JSON.stringify(restaurant));
+    }
+  }, [cartItems, restaurant]);
+
+  const addToCart = (item, restaurantInfo) => {
+    // Check if cart has items from a different restaurant
+    if (restaurant && restaurant.id !== restaurantInfo.id) {
+      const confirm = window.confirm(
+        `Your cart contains items from ${restaurant.name}. Do you want to clear it and add items from ${restaurantInfo.name}?`
+      );
+      if (confirm) {
+        setCartItems([{ ...item, quantity: 1 }]);
+        setRestaurant(restaurantInfo);
+      }
+      return;
+    }
+
+    // Set restaurant if this is the first item
+    if (!restaurant) {
+      setRestaurant(restaurantInfo);
+    }
+
+    // Check if item already exists in cart
+    const existingItemIndex = cartItems.findIndex(
+      (cartItem) => cartItem.id === item.id
+    );
+
+    if (existingItemIndex > -1) {
+      // Update quantity if item exists
+      const updatedCart = [...cartItems];
+      updatedCart[existingItemIndex].quantity += 1;
+      setCartItems(updatedCart);
+    } else {
+      // Add new item
+      setCartItems([...cartItems, { ...item, quantity: 1 }]);
+    }
+  };
+
+  const removeFromCart = (itemId) => {
+    const updatedCart = cartItems.filter((item) => item.id !== itemId);
+    setCartItems(updatedCart);
+    
+    // Clear restaurant if cart is empty
+    if (updatedCart.length === 0) {
+      setRestaurant(null);
+      localStorage.removeItem('cartRestaurant');
+    }
+  };
+
+  const updateQuantity = (itemId, newQuantity) => {
+    if (newQuantity === 0) {
+      removeFromCart(itemId);
+      return;
+    }
+
+    const updatedCart = cartItems.map((item) =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    );
+    setCartItems(updatedCart);
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    setRestaurant(null);
+    localStorage.removeItem('cart');
+    localStorage.removeItem('cartRestaurant');
+  };
+
+  const getCartTotal = () => {
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  const getCartCount = () => {
+    return cartItems.reduce((count, item) => count + item.quantity, 0);
+  };
+
+  const calculateSubtotal = () => {
+    return getCartTotal();
+  };
+
+  const calculateTax = () => {
+    return getCartTotal() * 0.08; // 8% tax
+  };
+
+  const calculateDeliveryFee = () => {
+    return 3.99;
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateTax() + calculateDeliveryFee();
+  };
+
+  const value = {
+    cartItems,
+    restaurant,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getCartTotal,
+    getCartCount,
+    calculateSubtotal,
+    calculateTax,
+    calculateDeliveryFee,
+    calculateTotal
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+};
+
+export default CartContext;
