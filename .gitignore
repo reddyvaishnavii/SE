@@ -5,3 +5,11 @@ build/
 dist/
 coverage/
 .vscode/
+node_modules/
+**/node_modules/
+.env
+*.log
+.vscode/
+.DS_Store
+dist/
+build/
