@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useRestaurant } from '../context/RestaurantContext';
 import { authAPI } from '../utils/api';
+import './RestaurantSignup.css';
 
 function RestaurantSignup() {
   const [formData, setFormData] = useState({

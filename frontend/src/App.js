@@ -23,6 +23,7 @@ import Payment from './pages/Payment';
 import Feedback from './pages/Feedback';
 import RoleRoute from './routes/RoleRoute';
 import './App.css';
+import Help from './pages/Help';
 
 function NavbarSwitcher() {
   const location = useLocation();
@@ -32,6 +33,7 @@ function NavbarSwitcher() {
 
   // Hide navbar on auth pages
   if (
+    path === '/' ||
     path === '/login' ||
     path === '/signup' ||
     path === '/restaurant-login' ||
@@ -89,6 +91,7 @@ function App() {
                 <Route path="/orders" element={<RoleRoute role="user"><Orders /></RoleRoute>} />
                 <Route path="/payment" element={<Payment />} />
                 <Route path="/feedback" element={<Feedback />} />
+                <Route path="/help" element={<Help />} />
               </Routes>
             </div>
           </CartProvider>

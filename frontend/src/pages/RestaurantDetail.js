@@ -10,7 +10,7 @@ function RestaurantDetail() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isLoggedIn } = useAuth();
-  
+
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,7 +24,6 @@ function RestaurantDetail() {
       setLoading(true);
       setError('');
       console.log('Fetching restaurant:', id);
-      
       const data = await restaurantAPI.getById(id);
       console.log('Restaurant data:', data);
       setRestaurant(data);
@@ -60,15 +59,14 @@ function RestaurantDetail() {
     alert(`${menuItem.name} added to cart!`);
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="loading-container">
-        <div className="loading">Loading restaurant...</div>
+        <div className="loading">🍽️ Loading restaurant...</div>
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
       <div className="error-container">
         <div className="error-message">
@@ -80,9 +78,8 @@ function RestaurantDetail() {
         </div>
       </div>
     );
-  }
 
-  if (!restaurant) {
+  if (!restaurant)
     return (
       <div className="error-container">
         <div className="error-message">
@@ -93,46 +90,53 @@ function RestaurantDetail() {
         </div>
       </div>
     );
-  }
 
   return (
     <div className="restaurant-detail-page">
-      {/* Restaurant Header */}
+      {/* Header Section */}
       <div className="restaurant-header">
         <button onClick={() => navigate('/restaurants')} className="back-button">
           ← Back to Restaurants
         </button>
-        
-        <div className="restaurant-info-header">
+
+        <div className="restaurant-card">
           {restaurant.image && (
-            <img src={restaurant.image} alt={restaurant.name} className="restaurant-banner" />
+            <img
+              src={restaurant.image}
+              alt={restaurant.name}
+              className="restaurant-banner"
+            />
           )}
-          
-          <div className="restaurant-details">
+
+          <div className="restaurant-info">
             <h1>{restaurant.name}</h1>
-            
             {restaurant.cuisine && restaurant.cuisine.length > 0 && (
-              <p className="cuisine-tags">
+              <div className="cuisine-tags">
                 {restaurant.cuisine.map((c, i) => (
-                  <span key={i} className="cuisine-tag">{c}</span>
+                  <span key={i} className="cuisine-tag">
+                    {c}
+                  </span>
                 ))}
-              </p>
+              </div>
             )}
-            
+
             <div className="restaurant-meta">
               <span className="rating">⭐ {restaurant.rating || 4.0}</span>
-              <span className="delivery-time">🕒 {restaurant.deliveryTime}</span>
+              <span className="delivery-time">
+                🕒 {restaurant.deliveryTime || '30–45 min'}
+              </span>
               {restaurant.minOrder > 0 && (
-                <span className="min-order">Min: ${restaurant.minOrder}</span>
+                <span className="min-order">Min: ₹{restaurant.minOrder}</span>
               )}
             </div>
-            
+
             {restaurant.address && (
               <p className="address">
-                📍 {restaurant.address.street}, {restaurant.address.city}, {restaurant.address.state}
+                📍 {restaurant.address.street}, {restaurant.address.city},{' '}
+                {restaurant.address.state}
               </p>
             )}
-            
+
             {restaurant.phone && (
               <p className="phone">📞 {restaurant.phone}</p>
             )}
@@ -143,7 +147,7 @@ function RestaurantDetail() {
       {/* Menu Section */}
       <div className="menu-section">
         <h2>Menu</h2>
-        
+
         {!restaurant.menu || restaurant.menu.length === 0 ? (
           <div className="no-menu">
             <p>No menu items available yet.</p>
@@ -153,43 +157,55 @@ function RestaurantDetail() {
             {restaurant.menu.map((item) => (
               <div key={item._id} className="menu-item-card">
                 {item.image && (
-                  <img src={item.image} alt={item.name} className="menu-item-image" />
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="menu-item-image"
+                  />
                 )}
-                
+
                 <div className="menu-item-content">
                   <div className="menu-item-header">
                     <h3>{item.name}</h3>
-                    <p className="price">${item.price.toFixed(2)}</p>
+                    <p className="price">₹{item.price.toFixed(2)}</p>
                   </div>
-                  
+
                   {item.description && (
                     <p className="description">{item.description}</p>
                   )}
-                  
-                  {item.category && (
-                    <span className="category-badge">{item.category}</span>
-                  )}
-                  
-                  {item.spicyLevel && (
-                    <span className="spicy-badge">🌶️ {item.spicyLevel}</span>
-                  )}
-                  
-                  {item.preparationTime && (
-                    <p className="prep-time">⏱️ {item.preparationTime} min</p>
-                  )}
-                  
+
+                  <div className="menu-tags">
+                    {item.category && (
+                      <span className="category-badge">{item.category}</span>
+                    )}
+                    {item.spicyLevel && (
+                      <span className="spicy-badge">
+                        🌶️ {item.spicyLevel}
+                      </span>
+                    )}
+                    {item.preparationTime && (
+                      <span className="prep-time">
+                        ⏱️ {item.preparationTime} min
+                      </span>
+                    )}
+                  </div>
+
                   {item.ingredients && item.ingredients.length > 0 && (
                     <p className="ingredients">
-                      <small>Ingredients: {item.ingredients.join(', ')}</small>
+                      <small>
+                        Ingredients: {item.ingredients.join(', ')}
+                      </small>
                     </p>
                   )}
-                  
+
                   <button
                     onClick={() => handleAddToCart(item)}
                     disabled={!item.available}
-                    className={`add-to-cart-button ${!item.available ? 'disabled' : ''}`}
+                    className={`add-to-cart-button ${
+                      !item.available ? 'disabled' : ''
+                    }`}
                   >
-                    {item.available ? 'Add to Cart' : 'Not Available'}
+                    {item.available ? '🛒 Add to Cart' : 'Not Available'}
                   </button>
                 </div>
               </div>

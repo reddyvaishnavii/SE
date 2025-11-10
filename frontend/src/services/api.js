@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: 'http://localhost:5001/api', // ✅ your backend runs on 5000
+  baseURL: 'http://localhost:5001/api', 
   headers: { 'Content-Type': 'application/json' },
   // withCredentials: true, // enable only if you use cookies
 });
@@ -12,6 +12,11 @@ api.interceptors.request.use((req) => {
   if (token) req.headers.Authorization = `Bearer ${token}`;
   return req;
 });
+
+getStats: () =>
+  apiCall(`/restaurant/stats`, {
+    restaurantAuth: true,
+  }),
 
 // Auth helpers
 export const authAPI = {

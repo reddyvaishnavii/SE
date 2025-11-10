@@ -108,17 +108,34 @@ router.delete('/menu/:menuItemId', async (req, res) => {
 });
 
 // Get restaurant stats (for dashboard)
+// Get restaurant stats (for dashboard)
 router.get('/stats', async (req, res) => {
   try {
-    const restaurant = await Restaurant.findById(req.restaurantId);
+    const restaurantId = req.restaurantId;
+    const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
+    // Import Order dynamically to avoid circular dependency
+    const Order = require('../models/Order');
+    const orders = await Order.find({ restaurant: restaurantId });
+
+    const totalOrders = orders.length;
+    const pendingOrders = orders.filter(o =>
+      ['pending', 'preparing', 'confirmed', 'out for delivery'].includes(o.status)
+    ).length;
+
+    const todayStr = new Date().toDateString();
+    const todayOrders = orders.filter(
+      o => new Date(o.createdAt).toDateString() === todayStr
+    );
+    const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
     const stats = {
-      totalOrders: 0,
-      pendingOrders: 0,
-      todayRevenue: 0,
+      totalOrders,
+      pendingOrders,
+      todayRevenue,
       totalMenuItems: restaurant.menu.length
     };
 
@@ -128,6 +145,7 @@ router.get('/stats', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 // Get restaurant's orders (placeholder for now)
 router.get('/orders', async (req, res) => {

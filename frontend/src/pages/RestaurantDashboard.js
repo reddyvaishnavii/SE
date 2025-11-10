@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRestaurant } from '../context/RestaurantContext';
-import { orderAPI } from '../utils/api';
+import { restaurantAPI, orderAPI } from '../utils/api';
+
 import './RestaurantDashboard.css';
 
 const RestaurantDashboard = () => {
+  console.log("✅ Rendering RestaurantDashboard");
   const { restaurant, isLoggedIn } = useRestaurant();
   const navigate = useNavigate();
 
@@ -37,26 +39,20 @@ const RestaurantDashboard = () => {
     try {
       const rid = restaurant?.id || restaurant?._id;
       if (!rid) return;
+  
+      // 1️⃣ Fetch stats
+      const statsData = await restaurantAPI.getStats();
+  
+      // 2️⃣ Fetch orders (for recent orders table)
       const orders = await orderAPI.getRestaurantOrders(rid);
-
-      // recent 5
-      setRecentOrders((orders || []).slice(0, 5));
-
-      // compute stats (if you have a stats API, swap this for that call)
-      const todayStr = new Date().toDateString();
-      const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === todayStr);
-      setStats({
-        totalOrders: orders.length,
-        pendingOrders: orders.filter(o =>
-          ['pending', 'preparing', 'confirmed', 'out for delivery'].includes(o.status)
-        ).length,
-        todayRevenue: todayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
-        totalMenuItems: Array.isArray(restaurant?.menu) ? restaurant.menu.length : 0
-      });
+  
+      setStats(statsData);
+      setRecentOrders(orders.slice(0, 5));
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
   };
+  
 
   const getStatusColor = (status) => {
     switch (status) {

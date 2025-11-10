@@ -16,7 +16,7 @@ export function RestaurantProvider({ children }) {
   useEffect(() => {
     const t = localStorage.getItem('restaurantToken');
     const r = localStorage.getItem('restaurant');
-    const role = localStorage.getItem('role'); // should be 'restaurant' for this context
+    const role = localStorage.getItem('role');
     if (t && r && role === 'restaurant') {
       setRestaurant(JSON.parse(r));
       setIsLoggedIn(true);

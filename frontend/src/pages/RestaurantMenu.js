@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRestaurant } from '../context/RestaurantContext';
+import { restaurantAPI } from '../utils/api';
 import './RestaurantMenu.css';
 
 const CATEGORIES = [
@@ -15,12 +16,22 @@ const CATEGORIES = [
   'Sides'
 ];
 
-const RestaurantMenu = () => {
-  const { restaurant, isRestaurantLoggedIn } = useRestaurant();
+export default function RestaurantMenu() {
+  console.log("✅ Rendering RestaurantMenu");
+  const { restaurant, isLoggedIn: isLoggedInCtx, isRestaurantLoggedIn } = useRestaurant();
+  const isLoggedIn = (typeof isLoggedInCtx === 'boolean' ? isLoggedInCtx : isRestaurantLoggedIn);
   const navigate = useNavigate();
+
+  const restaurantId = useMemo(
+    () => restaurant?.id || restaurant?._id,
+    [restaurant]
+  );
+
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
+
+  // modal + form state
+  const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -30,145 +41,118 @@ const RestaurantMenu = () => {
     image: '',
     available: true
   });
+
   const [filterCategory, setFilterCategory] = useState('All');
 
+  // redirect guard
   useEffect(() => {
-    if (!isRestaurantLoggedIn) {
-      navigate('/restaurant-login');
+    if (!isLoggedIn) {
+      navigate('/restaurant-login', { replace: true });
       return;
     }
-    fetchMenuItems();
-  }, [isRestaurantLoggedIn, navigate]);
+  }, [isLoggedIn, navigate]);
 
-  const fetchMenuItems = async () => {
-    try {
-      const token = localStorage.getItem('restaurantToken');
-      const response = await fetch('http://localhost:5001/api/restaurant/menu', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMenuItems(data);
+  // fetch menu
+  useEffect(() => {
+    if (!restaurantId) return;
+    (async () => {
+      try {
+        await fetchMenu();
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching menu:', error);
-      setLoading(false);
-    }
+    })();
+  }, [restaurantId]);
+
+  const fetchMenu = async () => {
+    // We’ll load the restaurant and read its menu array
+    const data = await restaurantAPI.getById(restaurantId);
+    // Expect data like { ... , menu: [ ... ] }
+    const items = Array.isArray(data?.menu) ? data.menu : [];
+    setMenuItems(items);
   };
 
+  /** ---------- image upload (client preview as base64) ---------- */
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) { // 5MB limit
-        alert('Image size should be less than 5MB');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result });
-      };
-      reader.readAsDataURL(file);
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      alert('Image size should be under 5MB');
+      return;
     }
+    const reader = new FileReader();
+    reader.onloadend = () => setFormData(prev => ({ ...prev, image: reader.result }));
+    reader.readAsDataURL(f);
   };
 
+  /** ---------- add / update submit ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem('restaurantToken');
-    const url = editingItem 
-      ? `http://localhost:5001/api/restaurant/menu/${editingItem._id}`
-      : 'http://localhost:5001/api/restaurant/menu';
-    
-    const method = editingItem ? 'PUT' : 'POST';
+    // small sanitation
+    const payload = {
+      ...formData,
+      price: Number(formData.price)
+    };
 
     try {
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        alert(editingItem ? 'Menu item updated!' : 'Menu item added!');
-        fetchMenuItems();
-        resetForm();
+      if (editingItem) {
+        await restaurantAPI.updateMenuItem(restaurantId, editingItem._id, payload);
+        alert('Menu item updated!');
       } else {
-        alert('Failed to save menu item');
+        await restaurantAPI.addMenuItem(restaurantId, payload);
+        alert('Menu item added!');
       }
-    } catch (error) {
-      console.error('Error saving menu item:', error);
-      alert('Error saving menu item');
+      await fetchMenu();
+      handleClose();
+    } catch (err) {
+      console.error('Save menu item failed:', err);
+      alert(err.message || 'Failed to save menu item');
     }
   };
 
-  const handleEdit = (item) => {
+  /** ---------- edit / delete / toggle ---------- */
+  const onEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      category: item.category,
+      name: item.name || '',
+      description: item.description || '',
+      price: item.price ?? '',
+      category: item.category || 'Main Course',
       image: item.image || '',
       available: item.available !== false
     });
-    setShowAddModal(true);
+    setShowModal(true);
   };
 
-  const handleDelete = async (itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) {
-      return;
-    }
-
-    const token = localStorage.getItem('restaurantToken');
+  const onDelete = async (itemId) => {
+    if (!window.confirm('Delete this menu item?')) return;
     try {
-      const response = await fetch(`http://localhost:1/api/restaurant/menu/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        alert('Menu item deleted!');
-        fetchMenuItems();
-      } else {
-        alert('Failed to delete menu item');
-      }
-    } catch (error) {
-      console.error('Error deleting menu item:', error);
-      alert('Error deleting menu item');
+      await restaurantAPI.deleteMenuItem(restaurantId, itemId);
+      await fetchMenu();
+      alert('Menu item deleted');
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert(err.message || 'Failed to delete');
     }
   };
 
-  const toggleAvailability = async (item) => {
-    const token = localStorage.getItem('restaurantToken');
+  const onToggleAvailable = async (item) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/restaurant/menu/${item._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ ...item, available: !item.available })
+      await restaurantAPI.updateMenuItem(restaurantId, item._id, {
+        ...item,
+        available: !item.available
       });
-
-      if (response.ok) {
-        fetchMenuItems();
-      }
-    } catch (error) {
-      console.error('Error updating availability:', error);
+      await fetchMenu();
+    } catch (err) {
+      console.error('Toggle availability failed:', err);
+      alert(err.message || 'Failed to update');
     }
   };
 
-  const resetForm = () => {
+  /** ---------- modal helpers ---------- */
+  const handleOpenAdd = () => {
+    setEditingItem(null);
     setFormData({
       name: '',
       description: '',
@@ -177,17 +161,22 @@ const RestaurantMenu = () => {
       image: '',
       available: true
     });
-    setEditingItem(null);
-    setShowAddModal(false);
+    setShowModal(true);
   };
 
-  const filteredItems = filterCategory === 'All' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === filterCategory);
+  const handleClose = () => {
+    setEditingItem(null);
+    setShowModal(false);
+  };
 
-  if (loading) {
-    return <div className="loading">Loading menu...</div>;
-  }
+  /** ---------- filtering ---------- */
+  const itemsToShow = useMemo(() => {
+    if (filterCategory === 'All') return menuItems;
+    return menuItems.filter(i => i.category === filterCategory);
+  }, [menuItems, filterCategory]);
+
+  if (!isLoggedIn) return null;
+  if (loading) return <div className="loading">Loading menu...</div>;
 
   return (
     <div className="restaurant-menu-page">
@@ -195,77 +184,76 @@ const RestaurantMenu = () => {
         <div className="menu-header">
           <div>
             <h1>Menu Management</h1>
-            <p>Manage your restaurant's menu items</p>
+            <p>View and update your restaurant menu</p>
           </div>
-          <button className="add-item-btn" onClick={() => setShowAddModal(true)}>
+          <button className="add-item-btn" onClick={handleOpenAdd}>
             ➕ Add Menu Item
           </button>
         </div>
 
         {/* Category Filter */}
         <div className="category-filter">
-          <button 
+          <button
             className={filterCategory === 'All' ? 'active' : ''}
             onClick={() => setFilterCategory('All')}
           >
             All
           </button>
-          {CATEGORIES.map(category => (
+          {CATEGORIES.map((cat) => (
             <button
-              key={category}
-              className={filterCategory === category ? 'active' : ''}
-              onClick={() => setFilterCategory(category)}
+              key={cat}
+              className={filterCategory === cat ? 'active' : ''}
+              onClick={() => setFilterCategory(cat)}
             >
-              {category}
+              {cat}
             </button>
           ))}
         </div>
 
-        {/* Menu Items Grid */}
-        {filteredItems.length === 0 ? (
+        {/* Items Grid */}
+        {itemsToShow.length === 0 ? (
           <div className="no-items">
             <h2>📋 No menu items yet</h2>
             <p>Start building your menu by adding items</p>
           </div>
         ) : (
           <div className="menu-items-grid">
-            {filteredItems.map(item => (
-              <div key={item._id} className={`menu-item-card ${!item.available ? 'unavailable' : ''}`}>
+            {itemsToShow.map((item) => (
+              <div
+                key={item._id}
+                className={`menu-item-card ${!item.available ? 'unavailable' : ''}`}
+              >
                 <div className="item-image">
-                  <img 
-                    src={item.image || 'https://via.placeholder.com/300x200?text=No+Image'} 
+                  <img
+                    src={item.image || 'https://via.placeholder.com/300x200?text=No+Image'}
                     alt={item.name}
                   />
                   {!item.available && <div className="unavailable-badge">Unavailable</div>}
                 </div>
+
                 <div className="item-details">
                   <div className="item-header">
                     <h3>{item.name}</h3>
                     <span className="item-category">{item.category}</span>
                   </div>
+
                   <p className="item-description">{item.description}</p>
+
                   <div className="item-footer">
-                    <span className="item-price">${item.price?.toFixed(2)}</span>
+                    <span className="item-price">₹{Number(item.price).toFixed(2)}</span>
+
                     <div className="item-actions">
-                      <button 
+                      <button
                         className="toggle-btn"
-                        onClick={() => toggleAvailability(item)}
                         title={item.available ? 'Mark as unavailable' : 'Mark as available'}
+                        onClick={() => onToggleAvailable(item)}
                       >
                         {item.available ? '✓' : '✗'}
                       </button>
-                      <button 
-                        className="edit-btn"
-                        onClick={() => handleEdit(item)}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="delete-btn"
-                        onClick={() => handleDelete(item._id)}
-                      >
-                        🗑️
-                      </button>
+
+                      <button className="edit-btn" onClick={() => onEdit(item)}>✏️</button>
+
+                      <button className="delete-btn" onClick={() => onDelete(item._id)}>🗑️</button>
                     </div>
                   </div>
                 </div>
@@ -274,13 +262,13 @@ const RestaurantMenu = () => {
           </div>
         )}
 
-        {/* Add/Edit Modal */}
-        {showAddModal && (
-          <div className="modal-overlay" onClick={resetForm}>
+        {/* Add / Edit Modal */}
+        {showModal && (
+          <div className="modal-overlay" onClick={handleClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>{editingItem ? 'Edit Menu Item' : 'Add Menu Item'}</h2>
-                <button className="close-btn" onClick={resetForm}>✕</button>
+                <button className="close-btn" onClick={handleClose}>✕</button>
               </div>
 
               <form onSubmit={handleSubmit}>
@@ -289,7 +277,7 @@ const RestaurantMenu = () => {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g., Margherita Pizza"
                     required
                   />
@@ -298,22 +286,22 @@ const RestaurantMenu = () => {
                 <div className="form-group">
                   <label>Description *</label>
                   <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Describe your dish..."
                     rows="3"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe your dish..."
                     required
                   />
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Price *</label>
+                    <label>Price (₹) *</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       placeholder="0.00"
                       required
                     />
@@ -323,11 +311,11 @@ const RestaurantMenu = () => {
                     <label>Category *</label>
                     <select
                       value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       required
                     >
-                      {CATEGORIES.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>
@@ -335,11 +323,7 @@ const RestaurantMenu = () => {
 
                 <div className="form-group">
                   <label>Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                  />
+                  <input type="file" accept="image/*" onChange={handleImageUpload} />
                   {formData.image && (
                     <div className="image-preview">
                       <img src={formData.image} alt="Preview" />
@@ -352,14 +336,14 @@ const RestaurantMenu = () => {
                     <input
                       type="checkbox"
                       checked={formData.available}
-                      onChange={(e) => setFormData({...formData, available: e.target.checked})}
+                      onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
                     />
                     Available for ordering
                   </label>
                 </div>
 
                 <div className="modal-actions">
-                  <button type="button" className="cancel-btn" onClick={resetForm}>
+                  <button type="button" className="cancel-btn" onClick={handleClose}>
                     Cancel
                   </button>
                   <button type="submit" className="submit-btn">
@@ -370,9 +354,8 @@ const RestaurantMenu = () => {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
-};
-
-export default RestaurantMenu;
+}

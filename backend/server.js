@@ -60,6 +60,8 @@ app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/support', require('./routes/Support'));
+
 
 
 /** ✅ Root endpoint */

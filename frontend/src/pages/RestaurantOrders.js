@@ -4,7 +4,8 @@ import { useRestaurant } from "../context/RestaurantContext";
 import "./RestaurantOrders.css";
 
 const RestaurantOrders = () => {
-  const { restaurant, isRestaurantLoggedIn } = useRestaurant();
+  console.log("✅ Rendering RestaurantOrders");
+  const { restaurant, isLoggedIn: isRestaurantLoggedIn } = useRestaurant();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

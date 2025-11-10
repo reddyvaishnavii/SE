@@ -25,11 +25,8 @@ function Orders() {
     try {
       setLoading(true);
       setError('');
-      
       const data = await orderAPI.getUserOrders(user.id);
       setOrders(data);
-      
-      // Check feedback status for each order
       data.forEach(order => checkFeedbackStatus(order._id));
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -41,7 +38,7 @@ function Orders() {
 
   const checkFeedbackStatus = async (orderId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/feedback/order/${orderId}`);
+      const response = await fetch(`http://localhost:5001/api/feedback/order/${orderId}`);
       if (response.ok) {
         const feedback = await response.json();
         setFeedbackStatus(prev => ({ ...prev, [orderId]: !!feedback }));
@@ -75,9 +72,7 @@ function Orders() {
     return icons[status] || '📦';
   };
 
-  if (!isLoggedIn) {
-    return null;
-  }
+  if (!isLoggedIn) return null;
 
   if (loading) {
     return (
@@ -105,10 +100,7 @@ function Orders() {
       <div className="orders-container">
         <div className="orders-header">
           <h1>Your Orders</h1>
-          <button 
-            className="browse-button"
-            onClick={() => navigate('/restaurants')}
-          >
+          <button className="browse-button" onClick={() => navigate('/restaurants')}>
             🍽️ Order More Food
           </button>
         </div>
@@ -118,10 +110,7 @@ function Orders() {
             <div className="no-orders-icon">📦</div>
             <h2>No orders yet</h2>
             <p>Start ordering delicious food!</p>
-            <button 
-              className="browse-button"
-              onClick={() => navigate('/restaurants')}
-            >
+            <button className="browse-button" onClick={() => navigate('/restaurants')}>
               Browse Restaurants
             </button>
           </div>
@@ -131,9 +120,7 @@ function Orders() {
               <div key={order._id} className="order-card">
                 <div className="order-header">
                   <div className="order-info">
-                    <h3>
-                      {order.restaurant?.name || 'Restaurant'}
-                    </h3>
+                    <h3>{order.restaurant?.name || 'Restaurant'}</h3>
                     <p className="order-date">
                       {new Date(order.createdAt).toLocaleString('en-US', {
                         month: 'short',
@@ -144,17 +131,15 @@ function Orders() {
                       })}
                     </p>
                   </div>
-                  
-                  <div 
+                  <div
                     className="order-status"
-                    style={{ 
-                      backgroundColor: getStatusColor(order.status),
-                    }}
+                    style={{ backgroundColor: getStatusColor(order.status) }}
                   >
                     {getStatusIcon(order.status)} {order.status.toUpperCase()}
                   </div>
                 </div>
 
+                {/* 🧾 Order Items */}
                 <div className="order-items">
                   <h4>Items:</h4>
                   <ul>
@@ -171,6 +156,35 @@ function Orders() {
                   </ul>
                 </div>
 
+                {/* 🚚 NEW: Order Status Progress Tracker */}
+                <div className="order-status-tracker">
+                  {["pending", "confirmed", "preparing", "out for delivery", "delivered"].map(
+                    (step, index) => {
+                      const statusOrder = [
+                        "pending",
+                        "confirmed",
+                        "preparing",
+                        "out for delivery",
+                        "delivered",
+                      ];
+                      const currentIndex = statusOrder.indexOf(order.status);
+                      const isCompleted = index <= currentIndex;
+
+                      return (
+                        <div key={step} className="status-step">
+                          <div className={`status-circle ${isCompleted ? "completed" : ""}`}></div>
+                          <p className={`status-label ${isCompleted ? "completed-text" : ""}`}>
+                            {step === "out for delivery"
+                              ? "Out for Delivery"
+                              : step.charAt(0).toUpperCase() + step.slice(1)}
+                          </p>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+
+                {/* 📦 Delivery Address & Payment */}
                 <div className="order-footer">
                   <div className="order-address">
                     <h4>Delivery Address:</h4>
@@ -179,7 +193,6 @@ function Orders() {
                       {order.deliveryAddress.city}, {order.deliveryAddress.state} {order.deliveryAddress.zipCode}
                     </p>
                   </div>
-                  
                   <div className="order-total">
                     <h4>Total Amount:</h4>
                     <p className="total-price">₹{order.totalAmount.toFixed(2)}</p>
@@ -189,9 +202,10 @@ function Orders() {
                   </div>
                 </div>
 
+                {/* ⭐ Feedback Button */}
                 <div className="order-actions">
                   {order.status === 'delivered' && !feedbackStatus[order._id] && (
-                    <button 
+                    <button
                       className="feedback-button"
                       onClick={() => navigate('/feedback', { state: { order } })}
                     >
@@ -199,9 +213,7 @@ function Orders() {
                     </button>
                   )}
                   {feedbackStatus[order._id] && (
-                    <div className="feedback-submitted">
-                      ✓ Feedback Submitted
-                    </div>
+                    <div className="feedback-submitted">✓ Feedback Submitted</div>
                   )}
                 </div>
               </div>

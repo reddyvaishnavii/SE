@@ -3,23 +3,26 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI } from '../utils/api';
+import './Payment.css';
 
 function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
   const { cartItems, restaurant, clearCart, calculateTotal } = useCart();
-  
+
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [cardDetails, setCardDetails] = useState({
     cardNumber: '',
     cardName: '',
     expiryDate: '',
     cvv: '',
   });
+
+  const [upiId, setUpiId] = useState('');
 
   const [deliveryAddress, setDeliveryAddress] = useState({
     street: '',
@@ -39,7 +42,6 @@ function Payment() {
       return;
     }
 
-    // Pre-fill address if user has one
     if (user?.address) {
       setDeliveryAddress(user.address);
     }
@@ -47,13 +49,11 @@ function Payment() {
 
   const handleCardChange = (e) => {
     let value = e.target.value;
-    
+
     if (e.target.name === 'cardNumber') {
-      // Format card number with spaces
       value = value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
-      value = value.slice(0, 19); // Max 16 digits + 3 spaces
+      value = value.slice(0, 19);
     } else if (e.target.name === 'expiryDate') {
-      // Format MM/YY
       value = value.replace(/\D/g, '');
       if (value.length >= 2) {
         value = value.slice(0, 2) + '/' + value.slice(2, 4);
@@ -61,7 +61,7 @@ function Payment() {
     } else if (e.target.name === 'cvv') {
       value = value.replace(/\D/g, '').slice(0, 3);
     }
-    
+
     setCardDetails({ ...cardDetails, [e.target.name]: value });
   };
 
@@ -73,6 +73,18 @@ function Payment() {
   };
 
   const validatePayment = () => {
+    // Address validation (common for all)
+    if (
+      !deliveryAddress.street ||
+      !deliveryAddress.city ||
+      !deliveryAddress.state ||
+      !deliveryAddress.zipCode
+    ) {
+      setError('Please fill in all address fields');
+      return false;
+    }
+
+    // Card validation
     if (paymentMethod === 'card') {
       const cardNum = cardDetails.cardNumber.replace(/\s/g, '');
       if (cardNum.length !== 16) {
@@ -93,11 +105,12 @@ function Payment() {
       }
     }
 
-    // Validate address
-    if (!deliveryAddress.street || !deliveryAddress.city || 
-        !deliveryAddress.state || !deliveryAddress.zipCode) {
-      setError('Please fill in all address fields');
-      return false;
+    // UPI validation
+    if (paymentMethod === 'upi') {
+      if (!upiId || !upiId.includes('@')) {
+        setError('Please enter a valid UPI ID');
+        return false;
+      }
     }
 
     return true;
@@ -107,43 +120,44 @@ function Payment() {
     e.preventDefault();
     setError('');
 
-    if (!validatePayment()) {
-      return;
-    }
+    if (!validatePayment()) return;
 
     setLoading(true);
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate processing delay
+      if (paymentMethod !== 'cod') {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
 
-      // Create order after successful payment
+      // Create order
       const orderData = {
         user: user.id,
         restaurant: restaurant.id,
-        items: cartItems.map(item => ({
+        items: cartItems.map((item) => ({
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          menuItem: item.id
+          menuItem: item.id,
         })),
         totalAmount: calculateTotal(),
         deliveryAddress: deliveryAddress,
         status: 'pending',
-        paymentStatus: 'completed'
+        paymentStatus: paymentMethod === 'cod' ? 'pending' : 'completed',
+        paymentMethod: paymentMethod,
       };
 
-      console.log('Creating order after payment:', orderData);
       const order = await orderAPI.create(orderData);
       console.log('Order created:', order);
 
-      // Clear cart
       clearCart();
 
-      // Show success message
-      alert('Payment successful! Your order has been placed. 🎉');
+      if (paymentMethod === 'cod') {
+        alert('Order placed! Please pay on delivery 💵');
+      } else {
+        alert('Payment successful! Your order has been placed 🎉');
+      }
 
-      // Redirect to orders page
       navigate('/orders');
     } catch (err) {
       console.error('Payment error:', err);
@@ -153,11 +167,9 @@ function Payment() {
     }
   };
 
-  if (cartItems.length === 0) {
-    return null; // Will redirect
-  }
-
   const total = calculateTotal();
+
+  if (cartItems.length === 0) return null;
 
   return (
     <div className="payment-page">
@@ -170,28 +182,20 @@ function Payment() {
         </div>
 
         <div className="payment-content">
-          {/* Left side - Forms */}
           <div className="payment-forms">
-            {error && (
-              <div className="error-message">
-                <span>⚠️ {error}</span>
-              </div>
-            )}
+            {error && <div className="error-message">⚠️ {error}</div>}
 
             {/* Delivery Address */}
             <div className="form-section">
               <h3>📍 Delivery Address</h3>
               <form className="address-form">
-                <div className="form-group">
-                  <input
-                    type="text"
-                    name="street"
-                    placeholder="Street Address *"
-                    value={deliveryAddress.street}
-                    onChange={handleAddressChange}
-                    required
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="street"
+                  placeholder="Street Address *"
+                  value={deliveryAddress.street}
+                  onChange={handleAddressChange}
+                />
                 <div className="form-row">
                   <input
                     type="text"
@@ -199,7 +203,6 @@ function Payment() {
                     placeholder="City *"
                     value={deliveryAddress.city}
                     onChange={handleAddressChange}
-                    required
                   />
                   <input
                     type="text"
@@ -207,7 +210,6 @@ function Payment() {
                     placeholder="State *"
                     value={deliveryAddress.state}
                     onChange={handleAddressChange}
-                    required
                   />
                   <input
                     type="text"
@@ -215,7 +217,6 @@ function Payment() {
                     placeholder="Zip Code *"
                     value={deliveryAddress.zipCode}
                     onChange={handleAddressChange}
-                    required
                   />
                 </div>
               </form>
@@ -225,28 +226,26 @@ function Payment() {
             <div className="form-section">
               <h3>💳 Payment Method</h3>
               <div className="payment-methods">
-                <button
-                  className={`payment-method-btn ${paymentMethod === 'card' ? 'active' : ''}`}
-                  onClick={() => setPaymentMethod('card')}
-                >
-                  💳 Credit/Debit Card
-                </button>
-                <button
-                  className={`payment-method-btn ${paymentMethod === 'upi' ? 'active' : ''}`}
-                  onClick={() => setPaymentMethod('upi')}
-                >
-                  📱 UPI
-                </button>
-                <button
-                  className={`payment-method-btn ${paymentMethod === 'cod' ? 'active' : ''}`}
-                  onClick={() => setPaymentMethod('cod')}
-                >
-                  💵 Cash on Delivery
-                </button>
+                {['card', 'upi', 'cod'].map((method) => (
+                  <button
+                    key={method}
+                    className={`payment-method-btn ${
+                      paymentMethod === method ? 'active' : ''
+                    }`}
+                    onClick={() => setPaymentMethod(method)}
+                  >
+                    {method === 'card'
+                      ? '💳 Card'
+                      : method === 'upi'
+                      ? '📱 UPI'
+                      : '💵 Cash on Delivery'}
+                  </button>
+                ))}
               </div>
 
+              {/* Conditional Payment Forms */}
               {paymentMethod === 'card' && (
-                <form className="card-form">
+                <div className="card-form">
                   <div className="form-group">
                     <label>Card Number</label>
                     <input
@@ -255,7 +254,6 @@ function Payment() {
                       placeholder="1234 5678 9012 3456"
                       value={cardDetails.cardNumber}
                       onChange={handleCardChange}
-                      required
                     />
                   </div>
                   <div className="form-group">
@@ -266,54 +264,48 @@ function Payment() {
                       placeholder="John Doe"
                       value={cardDetails.cardName}
                       onChange={handleCardChange}
-                      required
                     />
                   </div>
                   <div className="form-row">
-                    <div className="form-group">
-                      <label>Expiry Date</label>
-                      <input
-                        type="text"
-                        name="expiryDate"
-                        placeholder="MM/YY"
-                        value={cardDetails.expiryDate}
-                        onChange={handleCardChange}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>CVV</label>
-                      <input
-                        type="text"
-                        name="cvv"
-                        placeholder="123"
-                        value={cardDetails.cvv}
-                        onChange={handleCardChange}
-                        required
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      name="expiryDate"
+                      placeholder="MM/YY"
+                      value={cardDetails.expiryDate}
+                      onChange={handleCardChange}
+                    />
+                    <input
+                      type="text"
+                      name="cvv"
+                      placeholder="CVV"
+                      value={cardDetails.cvv}
+                      onChange={handleCardChange}
+                    />
                   </div>
-                </form>
+                </div>
               )}
 
               {paymentMethod === 'upi' && (
                 <div className="upi-form">
+                  <label>Enter UPI ID</label>
                   <input
                     type="text"
-                    placeholder="Enter UPI ID (e.g., name@upi)"
-                    className="upi-input"
+                    placeholder="example@upi"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
                   />
                 </div>
               )}
 
               {paymentMethod === 'cod' && (
                 <div className="cod-info">
-                  <p>💵 Pay with cash when your order arrives</p>
-                  <p className="cod-note">Please keep exact change handy</p>
+                  <p>💵 You’ll pay in cash when your order is delivered.</p>
+                  <p className="cod-note">Please keep the exact amount ready.</p>
                 </div>
               )}
             </div>
 
+            {/* Pay or Confirm Button */}
             <button
               className="pay-button"
               onClick={handlePayment}
@@ -322,62 +314,44 @@ function Payment() {
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Processing Payment...
+                  Processing...
                 </>
+              ) : paymentMethod === 'cod' ? (
+                `Confirm Order`
               ) : (
-                `Pay $${total.toFixed(2)}`
+                `Pay ₹${total.toFixed(2)}`
               )}
             </button>
           </div>
 
-          {/* Right side - Order Summary */}
+          {/* Order Summary */}
           <div className="order-summary-sidebar">
             <div className="summary-card">
               <h3>Order Summary</h3>
-              
               {restaurant && (
                 <div className="restaurant-info">
                   <strong>{restaurant.name}</strong>
                 </div>
               )}
-
               <div className="summary-items">
                 {cartItems.map((item) => (
                   <div key={item.id} className="summary-item">
-                    <span className="item-name">
+                    <span>
                       {item.name} x {item.quantity}
                     </span>
-                    <span className="item-price">
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </span>
+                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
-
-              <div className="summary-totals">
-                <div className="summary-row">
-                  <span>Subtotal:</span>
-                  <span>${(total - 3.99 - (total - 3.99) * 0.08).toFixed(2)}</span>
-                </div>
-                <div className="summary-row">
-                  <span>Tax (8%):</span>
-                  <span>${((total - 3.99) * 0.08).toFixed(2)}</span>
-                </div>
-                <div className="summary-row">
-                  <span>Delivery Fee:</span>
-                  <span>$3.99</span>
-                </div>
-                <div className="summary-divider"></div>
-                <div className="summary-row total">
-                  <strong>Total:</strong>
-                  <strong>${total.toFixed(2)}</strong>
-                </div>
+              <div className="summary-divider"></div>
+              <div className="summary-row total">
+                <strong>Total:</strong>
+                <strong>₹{total.toFixed(2)}</strong>
               </div>
             </div>
 
             <div className="secure-payment">
-              <span>🔒</span>
-              <p>Your payment information is secure</p>
+              🔒 Your payment is 100% secure
             </div>
           </div>
         </div>

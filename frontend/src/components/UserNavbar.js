@@ -17,13 +17,13 @@ const UserNavbar = () => {
   return (
     <nav className="navbar user-navbar">
       <div className="nav-container">
-        <Link to="/" className="nav-logo">
+        <Link to="/home" className="nav-logo">
           🍕 FoodDeliver
         </Link>
         
         <ul className="nav-menu">
           <li className="nav-item">
-            <Link to="/" className="nav-link">
+            <Link to="/home" className="nav-link">
               <span className="nav-icon">🏠</span>
               Home
             </Link>
@@ -34,6 +34,8 @@ const UserNavbar = () => {
               Restaurants
             </Link>
           </li>
+          
+
           <li className="nav-item">
             <Link to="/cart" className="nav-link cart-link">
               <span className="nav-icon">🛒</span>
@@ -51,6 +53,7 @@ const UserNavbar = () => {
                   My Orders
                 </Link>
               </li>
+              <Link to="/help" className="nav-link">Help & Support</Link>
               <li className="nav-item">
                 <span className="nav-link user-name">
                   <span className="nav-icon">👤</span>

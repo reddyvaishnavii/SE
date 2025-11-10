@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useRestaurant } from '../context/RestaurantContext';
 import { authAPI } from '../utils/api';
+import './RestaurantLogin.css';
 
 function RestaurantLogin() {
   const [email, setEmail] = useState('');
@@ -13,10 +14,12 @@ function RestaurantLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isLoggedIn) {
-      navigate('/restaurant/dashboard', { replace: true });
+    if (isLoggedIn && window.location.pathname === '/restaurant-login') {
+      navigate('/restaurant/dashboard');
     }
   }, [isLoggedIn, navigate]);
+  
+  
 
   if (isLoggedIn) return null;
 
@@ -30,6 +33,7 @@ function RestaurantLogin() {
       const restaurant = data.data?.restaurant ?? data.restaurant;
       if (!restaurant || !token) throw new Error('Invalid response from server');
       login(restaurant, token);
+      
       alert('Login successful!');
       navigate('/restaurant/dashboard', { replace: true });
     } catch (err) {

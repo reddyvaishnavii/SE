@@ -4,7 +4,8 @@ import { useRestaurant } from '../context/RestaurantContext';
 import './RestaurantProfile.css';
 
 const RestaurantProfile = () => {
-  const { restaurant, isRestaurantLoggedIn, updateRestaurantData, restaurantLogout } = useRestaurant();
+  console.log("✅ Rendering RestaurantProfile");
+  const { restaurant, isLoggedIn: isRestaurantLoggedIn, updateRestaurantData, restaurantLogout } = useRestaurant();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',

@@ -1,136 +1,98 @@
 // src/utils/api.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+import axios from 'axios';
 
-// Helper function to get auth token
-const getToken = () => localStorage.getItem('token');
-const getRestaurantToken = () => localStorage.getItem('restaurantToken');
+// ================================
+// 🔧 Axios Configuration
+// ================================
+export const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
+  headers: { 'Content-Type': 'application/json' },
+});
 
-// Helper function to handle API calls
-const apiCall = async (endpoint, options = {}) => {
-  console.log("🔍 Using API Base URL:", API_BASE_URL);
+// ✅ Attach restaurant token (or user token) automatically
+api.interceptors.request.use((req) => {
+  const restaurantToken = localStorage.getItem('restaurantToken');
+  const userToken = localStorage.getItem('token');
 
-  const url = `${API_BASE_URL}${endpoint}`;
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  // Add token if available
-  const token = options.restaurantAuth ? getRestaurantToken() : getToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (restaurantToken) {
+    req.headers.Authorization = `Bearer ${restaurantToken}`;
+  } else if (userToken) {
+    req.headers.Authorization = `Bearer ${userToken}`;
   }
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+  return req;
+});
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
-  }
-};
-
-// Auth API calls
+// ================================
+// 🔐 Auth API
+// ================================
 export const authAPI = {
-  // User auth
-  userRegister: (userData) =>
-    apiCall('/auth/user/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    }),
+  // User registration & login
+  userRegister: async (userData) => (await api.post('/auth/user/register', userData)).data,
+  userLogin: async (credentials) => (await api.post('/auth/user/login', credentials)).data,
 
-  userLogin: (credentials) =>
-    apiCall('/auth/user/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
+  // Restaurant registration & login
+  restaurantRegister: async (restaurantData) =>
+    (await api.post('/auth/restaurant/register', restaurantData)).data,
 
-  // Restaurant auth
-  restaurantRegister: (restaurantData) =>
-    apiCall('/auth/restaurant/register', {
-      method: 'POST',
-      body: JSON.stringify(restaurantData),
-    }),
-
-  restaurantLogin: (credentials) =>
-    apiCall('/auth/restaurant/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
+  restaurantLogin: async (credentials) =>
+    (await api.post('/auth/restaurant/login', credentials)).data,
 };
 
-// Restaurant API calls
+// ================================
+// 🍽️ Restaurant API
+// ================================
 export const restaurantAPI = {
-  getAll: () => apiCall('/restaurants'),
+  getAll: async () => (await api.get('/restaurants')).data,
 
-  getById: (id) => apiCall(`/restaurants/${id}`),
+  getById: async (id) => (await api.get(`/restaurants/${id}`)).data,
 
-  search: (query) => apiCall(`/restaurants/search/${query}`),
+  search: async (query) => (await api.get(`/restaurants/search/${query}`)).data,
 
-  update: (id, data) =>
-    apiCall(`/restaurants/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-      restaurantAuth: true,
-    }),
+  update: async (id, data) =>
+    (await api.put(`/restaurants/${id}`, data)).data,
 
-  // Menu management
-  addMenuItem: (restaurantId, menuItem) =>
-    apiCall(`/restaurants/${restaurantId}/menu`, {
-      method: 'POST',
-      body: JSON.stringify(menuItem),
-      restaurantAuth: true,
-    }),
+  // 🧾 Stats (for dashboard)
+  getStats: async () => (await api.get('/restaurant/stats')).data,
 
-  updateMenuItem: (restaurantId, menuItemId, menuItem) =>
-    apiCall(`/restaurants/${restaurantId}/menu/${menuItemId}`, {
-      method: 'PUT',
-      body: JSON.stringify(menuItem),
-      restaurantAuth: true,
-    }),
+  // 🍔 Menu Management (Authenticated)
+  addMenuItem: async (menuItem) =>
+    (await api.post(`/restaurant/menu`, menuItem)).data,
 
-  deleteMenuItem: (restaurantId, menuItemId) =>
-    apiCall(`/restaurants/${restaurantId}/menu/${menuItemId}`, {
-      method: 'DELETE',
-      restaurantAuth: true,
-    }),
+  updateMenuItem: async (menuItemId, menuItem) =>
+    (await api.put(`/restaurant/menu/${menuItemId}`, menuItem)).data,
+
+  deleteMenuItem: async (menuItemId) =>
+    (await api.delete(`/restaurant/menu/${menuItemId}`)).data,
 };
 
-// Order API calls
+
+// ================================
+// 🛒 Order API
+// ================================
 export const orderAPI = {
-  create: (orderData) =>
-    apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData),
-    }),
+  create: async (orderData) => (await api.post('/orders', orderData)).data,
 
-  getUserOrders: (userId) => apiCall(`/orders/user/${userId}`),
+  getUserOrders: async (userId) => (await api.get(`/orders/user/${userId}`)).data,
 
-  getRestaurantOrders: (restaurantId) =>
-    apiCall(`/orders/restaurant/${restaurantId}`, {
-      restaurantAuth: true,
-    }),
+  getRestaurantOrders: async (restaurantId) =>
+    (await api.get(`/orders/restaurant/${restaurantId}`)).data,
 
-  updateStatus: (orderId, status) =>
-    apiCall(`/orders/${orderId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-      restaurantAuth: true,
-    }),
+  updateStatus: async (orderId, status) =>
+    (await api.patch(`/orders/${orderId}/status`, { status })).data,
+};
+
+// ================================
+// 📞 Support API (if using help page)
+// ================================
+export const supportAPI = {
+  sendMessage: async (formData) => (await api.post('/support', formData)).data,
 };
 
 export default {
+  api,
   authAPI,
   restaurantAPI,
   orderAPI,
+  supportAPI,
 };
