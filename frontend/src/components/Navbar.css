@@ -179,24 +179,28 @@
 }
 
 .logout-btn {
-  background: #ffffff;
-  color: #E23744;
-  border: 2px solid #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.5);
   border-radius: 25px;
   font-weight: 700;
   padding: 10px 24px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(6px);
 }
 
 .logout-btn:hover {
-  background: #E23744;
-  color: #ffffff;
-  border-color: #E23744;
+  background: #ffffff;
+  color: #E23744;
+  border-color: #ffffff;
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(226, 55, 68, 0.4);
 }
+
+
+
 
 
 .restaurant-navbar .logout-btn:hover {
