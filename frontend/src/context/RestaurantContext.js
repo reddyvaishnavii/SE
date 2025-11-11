@@ -13,6 +13,7 @@ export function RestaurantProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Load restaurant session from localStorage on app start
   useEffect(() => {
     const t = localStorage.getItem('restaurantToken');
     const r = localStorage.getItem('restaurant');
@@ -24,6 +25,7 @@ export function RestaurantProvider({ children }) {
     setLoading(false);
   }, []);
 
+  // ✅ Restaurant login
   const login = (restaurantData, token) => {
     localStorage.setItem('restaurantToken', token);
     localStorage.setItem('restaurant', JSON.stringify(restaurantData));
@@ -32,6 +34,7 @@ export function RestaurantProvider({ children }) {
     setIsLoggedIn(true);
   };
 
+  // ✅ Restaurant logout
   const logout = () => {
     localStorage.removeItem('restaurantToken');
     localStorage.removeItem('restaurant');
@@ -42,8 +45,26 @@ export function RestaurantProvider({ children }) {
     setIsLoggedIn(false);
   };
 
+  // ✅ Update restaurant data (used in RestaurantProfile)
+  const updateRestaurantData = (updatedData) => {
+    setRestaurant((prev) => {
+      const merged = { ...prev, ...updatedData };
+      localStorage.setItem('restaurant', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   return (
-    <RestaurantContext.Provider value={{ restaurant, isLoggedIn, login, logout, loading }}>
+    <RestaurantContext.Provider
+      value={{
+        restaurant,
+        isLoggedIn,
+        login,
+        logout,
+        loading,
+        updateRestaurantData, // ✅ now defined properly
+      }}
+    >
       {!loading && children}
     </RestaurantContext.Provider>
   );

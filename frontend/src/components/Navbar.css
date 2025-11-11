@@ -7,9 +7,16 @@
   backdrop-filter: blur(10px);
 }
 
+/* Make restaurant navbar match user navbar exactly */
 .restaurant-navbar {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #E23744 0%, #FC8019 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
 }
+
 
 .nav-container {
   max-width: 1400px;
@@ -172,15 +179,25 @@
 }
 
 .logout-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
+  background: #ffffff;
+  color: #E23744;
+  border: 2px solid #ffffff;
+  border-radius: 25px;
+  font-weight: 700;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .logout-btn:hover {
-  background: white;
-  color: #667eea;
+  background: #E23744;
+  color: #ffffff;
+  border-color: #E23744;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(226, 55, 68, 0.4);
 }
+
 
 .restaurant-navbar .logout-btn:hover {
   color: #f5576c;
