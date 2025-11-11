@@ -7,6 +7,7 @@ const RestaurantProfile = () => {
   console.log("✅ Rendering RestaurantProfile");
   const { restaurant, isLoggedIn: isRestaurantLoggedIn, updateRestaurantData, restaurantLogout } = useRestaurant();
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -76,16 +77,14 @@ const RestaurantProfile = () => {
 
       if (response.ok) {
         const updatedData = await response.json();
-        updateRestaurantData(updatedData);
+        updateRestaurantData(updatedData); // ✅ imported function
         alert('Profile updated successfully!');
       } else {
         alert('Failed to update profile');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      // Update locally for demo
-      updateRestaurantData(formData);
-      alert('Profile updated successfully!');
+      alert('An error occurred while updating your profile.');
     } finally {
       setLoading(false);
     }
@@ -110,9 +109,9 @@ const RestaurantProfile = () => {
           <div className="profile-sidebar">
             <div className="restaurant-preview">
               <div className="preview-image">
-                <img 
-                  src={formData.image || 'https://via.placeholder.com/400x300?text=Restaurant+Image'} 
-                  alt="Restaurant" 
+                <img
+                  src={formData.image || 'https://via.placeholder.com/400x300?text=Restaurant+Image'}
+                  alt="Restaurant"
                 />
               </div>
               <h3>{formData.name || 'Restaurant Name'}</h3>
@@ -142,13 +141,13 @@ const RestaurantProfile = () => {
             <form onSubmit={handleSubmit}>
               <div className="form-section">
                 <h2>Basic Information</h2>
-                
+
                 <div className="form-group">
                   <label>Restaurant Name *</label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Enter restaurant name"
                     required
                   />
@@ -159,7 +158,7 @@ const RestaurantProfile = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="restaurant@example.com"
                     required
                   />
@@ -171,7 +170,7 @@ const RestaurantProfile = () => {
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="123-456-7890"
                       required
                     />
@@ -182,7 +181,7 @@ const RestaurantProfile = () => {
                     <input
                       type="text"
                       value={formData.cuisine}
-                      onChange={(e) => setFormData({...formData, cuisine: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, cuisine: e.target.value })}
                       placeholder="e.g., Italian, Chinese"
                       required
                     />
@@ -193,7 +192,7 @@ const RestaurantProfile = () => {
                   <label>Address *</label>
                   <textarea
                     value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="Full restaurant address"
                     rows="3"
                     required
@@ -204,7 +203,7 @@ const RestaurantProfile = () => {
                   <label>Description *</label>
                   <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Tell customers about your restaurant..."
                     rows="4"
                     required
@@ -214,28 +213,24 @@ const RestaurantProfile = () => {
 
               <div className="form-section">
                 <h2>Restaurant Image</h2>
-                
+
                 <div className="form-group">
                   <label>Upload Banner Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                  />
+                  <input type="file" accept="image/*" onChange={handleImageUpload} />
                   <small>Recommended size: 1200x400px (Max 5MB)</small>
                 </div>
               </div>
 
               <div className="form-section">
                 <h2>Business Settings</h2>
-                
+
                 <div className="form-row">
                   <div className="form-group">
                     <label>Average Delivery Time (minutes)</label>
                     <input
                       type="number"
                       value={formData.deliveryTime}
-                      onChange={(e) => setFormData({...formData, deliveryTime: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
                       placeholder="30"
                       min="10"
                       max="120"
@@ -248,7 +243,7 @@ const RestaurantProfile = () => {
                       type="number"
                       step="0.01"
                       value={formData.minOrder}
-                      onChange={(e) => setFormData({...formData, minOrder: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, minOrder: e.target.value })}
                       placeholder="10.00"
                       min="0"
                     />

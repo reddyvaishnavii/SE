@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRestaurant } from '../context/RestaurantContext';
 import { restaurantAPI, orderAPI } from '../utils/api';
-
 import './RestaurantDashboard.css';
 
 const RestaurantDashboard = () => {
-  console.log("✅ Rendering RestaurantDashboard");
   const { restaurant, isLoggedIn } = useRestaurant();
   const navigate = useNavigate();
 
@@ -24,13 +22,14 @@ const RestaurantDashboard = () => {
       navigate('/restaurant-login');
       return;
     }
+
     const run = async () => {
       await fetchDashboardData();
       setLoading(false);
     };
     run();
 
-    // poll every 8s for new orders
+    // Poll every 8s for updates
     const id = setInterval(fetchDashboardData, 8000);
     return () => clearInterval(id);
   }, [isLoggedIn, navigate]);
@@ -39,20 +38,16 @@ const RestaurantDashboard = () => {
     try {
       const rid = restaurant?.id || restaurant?._id;
       if (!rid) return;
-  
-      // 1️⃣ Fetch stats
+
       const statsData = await restaurantAPI.getStats();
-  
-      // 2️⃣ Fetch orders (for recent orders table)
       const orders = await orderAPI.getRestaurantOrders(rid);
-  
+
       setStats(statsData);
       setRecentOrders(orders.slice(0, 5));
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
   };
-  
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -74,10 +69,10 @@ const RestaurantDashboard = () => {
       <div className="dashboard-container">
         <div className="dashboard-header">
           <h1>Welcome back, {restaurant?.name}! 👋</h1>
-          <p>Here's what's happening with your restaurant today</p>
+          <p>Here’s what’s happening with your restaurant today</p>
         </div>
 
-        {/* Stats Cards */}
+        {/* 📊 Stats Section */}
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon" style={{ background: '#e3f2fd' }}>📦</div>
@@ -112,10 +107,10 @@ const RestaurantDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* ⚡ Quick Actions */}
         <div className="quick-actions">
           <h2>Quick Actions</h2>
-          <div className="actions-grid">
+          <div className="actions-grid three-columns">
             <Link to="/restaurant/menu" className="action-card">
               <span className="action-icon">📋</span>
               <h3>Manage Menu</h3>
@@ -125,7 +120,7 @@ const RestaurantDashboard = () => {
             <Link to="/restaurant/orders" className="action-card">
               <span className="action-icon">📦</span>
               <h3>View Orders</h3>
-              <p>Manage incoming orders</p>
+              <p>Track and update incoming orders</p>
             </Link>
 
             <Link to="/restaurant/profile" className="action-card">
@@ -133,16 +128,10 @@ const RestaurantDashboard = () => {
               <h3>Restaurant Profile</h3>
               <p>Update restaurant information</p>
             </Link>
-
-            <Link to="/restaurant/analytics" className="action-card">
-              <span className="action-icon">📊</span>
-              <h3>Analytics</h3>
-              <p>View sales and performance</p>
-            </Link>
           </div>
         </div>
 
-        {/* Recent Orders */}
+        {/* 🧾 Recent Orders */}
         <div className="recent-orders-section">
           <div className="section-header">
             <h2>Recent Orders</h2>
@@ -151,7 +140,7 @@ const RestaurantDashboard = () => {
 
           {recentOrders.length === 0 ? (
             <div className="no-orders">
-              <p>No recent orders</p>
+              <p>No recent orders yet</p>
             </div>
           ) : (
             <div className="orders-table">
