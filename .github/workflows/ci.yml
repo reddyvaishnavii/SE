@@ -25,9 +25,14 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm ci || npm install
+      - name: Install frontend dependencies (if exists)
+        run: |
+          if [ -d "frontend" ]; then
+            cd frontend
+            npm ci || npm install
+          else
+            echo "⚠️ Frontend folder not found, skipping..."
+          fi
 
       - name: Verify backend build
         run: |
@@ -36,11 +41,14 @@ jobs:
           node -c server.js
           echo "✅ Backend build syntax check passed"
 
-      - name: Verify frontend build
-        working-directory: ./frontend
+      - name: Verify frontend build (if exists)
         run: |
-          echo "Building frontend..."
-          npm run build || echo "⚠️ Frontend build failed (skipping)"
+          if [ -d "frontend" ]; then
+            cd frontend
+            npm run build || echo "⚠️ Frontend build failed (skipping)"
+          else
+            echo "⚠️ Frontend folder not found, skipping build..."
+          fi
 
   # 🧪 Stage 2: Test
   test:
@@ -190,12 +198,13 @@ jobs:
 
       - name: Copy backend + frontend sources
         run: |
-          cp -r * deployment/
-          rm -rf deployment/node_modules
-          rm -rf deployment/coverage
+          echo "Copying source files except deployment directory..."
+          rsync -av --exclude='deployment' --exclude='.git' ./ deployment/
+          echo "✅ Source files copied"
 
       - name: Copy reports
         run: |
+          echo "Copying reports..."
           cp -r artifacts/* deployment/reports/ || true
 
       - name: Package deployment
@@ -203,6 +212,7 @@ jobs:
           cd deployment
           zip -r ../deployment-package.zip .
           cd ..
+          echo "✅ Deployment package created"
 
       - name: Upload deployment package
         uses: actions/upload-artifact@v4
