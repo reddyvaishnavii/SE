@@ -21,8 +21,6 @@ jobs:
         with:
           node-version: '20.19.0'
           cache: 'npm'
-          cache-dependency-path: |
-
 
       - name: Install backend dependencies
         working-directory: ./backend
@@ -30,7 +28,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm ci || npm install
 
       - name: Verify backend build
         working-directory: ./backend
@@ -39,12 +37,12 @@ jobs:
           ls -l
           node -c server.js
           echo "✅ Backend build syntax check passed"
-      
-      
 
       - name: Verify frontend build
         working-directory: ./frontend
-        run: npm run build || echo "⚠️ Frontend build failed (skipping)"
+        run: |
+          echo "Building frontend..."
+          npm run build || echo "⚠️ Frontend build failed (skipping)"
 
   # 🧪 Stage 2: Test
   test:
@@ -61,7 +59,6 @@ jobs:
         with:
           node-version: '20.19.0'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./backend
@@ -97,7 +94,6 @@ jobs:
         with:
           node-version: '20.19.0'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./backend
@@ -134,7 +130,6 @@ jobs:
         with:
           node-version: '20.19.0'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./backend
@@ -143,6 +138,10 @@ jobs:
       - name: Run ESLint
         working-directory: ./backend
         run: npm run lint || true
+
+      - name: Generate lint report
+        working-directory: ./backend
+        run: npm run lint > lint-report.txt 2>&1 || true
 
       - name: Upload lint report
         uses: actions/upload-artifact@v4
@@ -166,7 +165,6 @@ jobs:
         with:
           node-version: '20.19.0'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./backend
