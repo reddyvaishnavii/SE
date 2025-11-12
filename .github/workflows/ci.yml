@@ -23,7 +23,6 @@ jobs:
           cache: 'npm'
 
       - name: Install backend dependencies
-        working-directory: ./backend
         run: npm ci
 
       - name: Install frontend dependencies
@@ -31,7 +30,6 @@ jobs:
         run: npm ci || npm install
 
       - name: Verify backend build
-        working-directory: ./backend
         run: |
           echo "Verifying backend build..."
           ls -l
@@ -61,11 +59,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        working-directory: ./backend
         run: npm ci
 
       - name: Run all test suites
-        working-directory: ./backend
         run: |
           npm run test:unit
           npm run test:integration
@@ -76,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: backend/test-results.json
+          path: tests/test-results.json
           if-no-files-found: ignore
 
   # 📊 Stage 3: Coverage
@@ -96,23 +92,20 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        working-directory: ./backend
         run: npm ci
 
       - name: Run coverage
-        working-directory: ./backend
         run: npm run test:coverage
         continue-on-error: true
 
       - name: Check coverage threshold (75%)
-        working-directory: ./backend
         run: npm run test:coverage:check || (echo "⚠️ Coverage below 75%" && exit 1)
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: backend/coverage/
+          path: coverage/
           retention-days: 30
 
   # 🧹 Stage 4: Lint
@@ -132,22 +125,19 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        working-directory: ./backend
         run: npm ci
 
       - name: Run ESLint
-        working-directory: ./backend
         run: npm run lint || true
 
       - name: Generate lint report
-        working-directory: ./backend
         run: npm run lint > lint-report.txt 2>&1 || true
 
       - name: Upload lint report
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: backend/lint-report.txt
+          path: lint-report.txt
           retention-days: 30
 
   # 🛡️ Stage 5: Security
@@ -167,18 +157,16 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        working-directory: ./backend
         run: npm ci
 
       - name: Run security audit
-        working-directory: ./backend
         run: npm run security:check || true
 
       - name: Upload security report
         uses: actions/upload-artifact@v4
         with:
           name: security-report
-          path: backend/security-report.json
+          path: security-report.json
           retention-days: 30
 
   # 🚀 Stage 6: Deploy Artifact
@@ -198,17 +186,17 @@ jobs:
           path: artifacts/
 
       - name: Create deployment directory
-        run: mkdir -p deployment/backend/reports
+        run: mkdir -p deployment/reports
 
-      - name: Copy backend source
+      - name: Copy backend + frontend sources
         run: |
-          cp -r backend/* deployment/backend/
-          rm -rf deployment/backend/node_modules
-          rm -rf deployment/backend/coverage
+          cp -r * deployment/
+          rm -rf deployment/node_modules
+          rm -rf deployment/coverage
 
       - name: Copy reports
         run: |
-          cp -r artifacts/* deployment/backend/reports/ || true
+          cp -r artifacts/* deployment/reports/ || true
 
       - name: Package deployment
         run: |
