@@ -1,6 +1,5 @@
 node_modules/
 coverage/
-*.config.js
-jest.setup.js
-server.js
-
+dist/
+build/
+.env

@@ -14,7 +14,6 @@ if (process.env.JEST_WORKER_ID !== undefined) {
 }
 
 
-
 // Get restaurant's own menu
 router.get('/menu', async (req, res) => {
   try {
@@ -35,7 +34,7 @@ router.post('/menu', async (req, res) => {
   try {
     console.log('➕ Adding menu item for restaurant:', req.restaurantId);
     console.log('📦 Request body:', req.body);
-    
+
     const restaurant = await Restaurant.findById(req.restaurantId);
     if (!restaurant) {
       console.error('❌ Restaurant not found:', req.restaurantId);
@@ -52,7 +51,7 @@ router.post('/menu', async (req, res) => {
     };
 
     console.log('🍽️ New menu item:', newMenuItem);
-    
+
     restaurant.menu.push(newMenuItem);
     await restaurant.save();
 
@@ -168,7 +167,7 @@ router.get('/orders', async (req, res) => {
 router.put('/profile', async (req, res) => {
   try {
     const { password, email, ...updateData } = req.body;
-    
+
     const restaurant = await Restaurant.findByIdAndUpdate(
       req.restaurantId,
       updateData,

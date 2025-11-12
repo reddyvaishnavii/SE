@@ -21,7 +21,7 @@ describe('User model - correctPassword', () => {
     const fakeUser = new User({
       name: 'Test',
       email: 'test@example.com',
-      password: 'hashedpassword',
+      password: 'hashedpassword'
     });
 
     const res = await fakeUser.correctPassword('plainpassword', fakeUser.password);
@@ -32,7 +32,7 @@ describe('User model - correctPassword', () => {
     const fakeUser = new User({
       name: 'Test2',
       email: 'test2@example.com',
-      password: 'hashedpassword',
+      password: 'hashedpassword'
     });
 
     const res = await fakeUser.correctPassword('wrong', fakeUser.password);
