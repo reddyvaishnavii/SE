@@ -21,10 +21,8 @@ jobs:
         with:
           node-version: '20.19.0'
           cache: 'npm'
-          # 👇 Tell GitHub Actions to look for lockfiles in backend and frontend
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
+          cache-dependency-path: backend/package-lock.json
+      
 
       - name: Install backend dependencies
         working-directory: ./backend
