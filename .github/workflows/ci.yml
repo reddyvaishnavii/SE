@@ -36,7 +36,9 @@ jobs:
         working-directory: ./backend
         run: |
           echo "Verifying backend build..."
-          node -c server.js && echo "✅ Backend syntax check passed"
+          node -c server.js
+          echo "✅ Backend build syntax check passed"
+      
 
       - name: Verify frontend build
         working-directory: ./frontend
