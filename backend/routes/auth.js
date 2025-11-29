@@ -8,7 +8,7 @@ const router = express.Router();
 /** Generate JWT token with role embedded */
 const signToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
-    expiresIn: '7d' // e.g. '1h', '24h', '7d'
+    expiresIn: '7d', // e.g. '1h', '24h', '7d'
   });
 };
 
@@ -18,10 +18,6 @@ const signToken = (id, role) => {
 router.post('/user/register', async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
-    if (!req.body || !req.body.name || !req.body.email || !req.body.password) {
-      return res.status(400).json({ message: 'All fields (name, email, password) are required' });
-    }
-
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'User already exists' });
@@ -37,9 +33,9 @@ router.post('/user/register', async (req, res) => {
         user: {
           id: user._id,
           name: user.name,
-          email: user.email
-        }
-      }
+          email: user.email,
+        },
+      },
     });
   } catch (error) {
     res.status(400).json({ message: error.message || 'Registration failed' });
@@ -67,9 +63,9 @@ router.post('/user/login', async (req, res) => {
         user: {
           id: user._id,
           name: user.name,
-          email: user.email
-        }
-      }
+          email: user.email,
+        },
+      },
     });
   } catch (error) {
     res.status(400).json({ message: error.message || 'Login failed' });
@@ -82,10 +78,6 @@ router.post('/user/login', async (req, res) => {
 router.post('/restaurant/register', async (req, res) => {
   try {
     const { name, email, password, phone, cuisine, address } = req.body;
-    if (!req.body || !req.body.name || !req.body.email || !req.body.password) {
-      return res.status(400).json({ message: 'All fields (name, email, password) are required' });
-    }
-
 
     const existing = await Restaurant.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Restaurant already exists' });
@@ -96,7 +88,7 @@ router.post('/restaurant/register', async (req, res) => {
       password,
       phone,
       cuisine,
-      address
+      address,
     });
 
     const token = signToken(restaurant._id, 'restaurant');
@@ -109,9 +101,9 @@ router.post('/restaurant/register', async (req, res) => {
         restaurant: {
           id: restaurant._id,
           name: restaurant.name,
-          email: restaurant.email
-        }
-      }
+          email: restaurant.email,
+        },
+      },
     });
   } catch (error) {
     res.status(400).json({ message: error.message || 'Registration failed' });
@@ -139,9 +131,9 @@ router.post('/restaurant/login', async (req, res) => {
         restaurant: {
           id: restaurant._id,
           name: restaurant.name,
-          email: restaurant.email
-        }
-      }
+          email: restaurant.email,
+        },
+      },
     });
   } catch (error) {
     res.status(400).json({ message: error.message || 'Login failed' });

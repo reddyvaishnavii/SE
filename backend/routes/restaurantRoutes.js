@@ -4,15 +4,8 @@ const { authenticateRestaurant } = require('../middleware/auth');
 
 const router = express.Router();
 
-
-// ✅ All routes require authentication
+// All routes here require authentication
 router.use(authenticateRestaurant);
-
-// ✅ In Jest test mode, just log — do NOT override routes
-if (process.env.JEST_WORKER_ID !== undefined) {
-  console.log('🧪 Running in Jest mode: DB calls will be mocked');
-}
-
 
 // Get restaurant's own menu
 router.get('/menu', async (req, res) => {
@@ -34,7 +27,7 @@ router.post('/menu', async (req, res) => {
   try {
     console.log('➕ Adding menu item for restaurant:', req.restaurantId);
     console.log('📦 Request body:', req.body);
-
+    
     const restaurant = await Restaurant.findById(req.restaurantId);
     if (!restaurant) {
       console.error('❌ Restaurant not found:', req.restaurantId);
@@ -51,7 +44,7 @@ router.post('/menu', async (req, res) => {
     };
 
     console.log('🍽️ New menu item:', newMenuItem);
-
+    
     restaurant.menu.push(newMenuItem);
     await restaurant.save();
 
@@ -167,7 +160,7 @@ router.get('/orders', async (req, res) => {
 router.put('/profile', async (req, res) => {
   try {
     const { password, email, ...updateData } = req.body;
-
+    
     const restaurant = await Restaurant.findByIdAndUpdate(
       req.restaurantId,
       updateData,
